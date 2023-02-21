@@ -5,9 +5,10 @@
  * @format
  */
 
-import React from 'react';
-import type {PropsWithChildren} from 'react';
+import React, { useEffect } from 'react';
+import type { PropsWithChildren } from 'react';
 import {
+  DeviceEventEmitter,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -18,18 +19,16 @@ import {
 } from 'react-native';
 
 import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
+  Colors
 } from 'react-native/Libraries/NewAppScreen';
+
+import QuickActions, { ShortcutItem } from 'react-native-quick-actions'
 
 type SectionProps = PropsWithChildren<{
   title: string;
 }>;
 
-function Section({children, title}: SectionProps): JSX.Element {
+function Section({ children, title }: SectionProps): JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
   return (
     <View style={styles.sectionContainer}>
@@ -55,6 +54,9 @@ function Section({children, title}: SectionProps): JSX.Element {
   );
 }
 
+const ACTIVITIES = 'activities'
+const NOTIFICATION = 'notification'
+
 function App(): JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
 
@@ -62,34 +64,71 @@ function App(): JSX.Element {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
   };
 
+  useEffect(() => {
+    const processShortcut = ( item: ShortcutItem ) => {
+        if(item.type === ACTIVITIES) {
+          console.log('item')
+          console.log(item)
+          console.log('redirect to activities')
+        } else if(item.type === NOTIFICATION) {
+          console.log('item')
+          console.log(item)
+          console.log('redirect to notification')
+        }
+    }
+
+    QuickActions.setShortcutItems([
+      {
+        type: ACTIVITIES,
+        title: 'Atividades',
+        subtitle: 'detalhes das atividades',
+        icon: 'activities',
+        userInfo: {
+          url: 'url'
+        }
+      },
+      {
+        type: NOTIFICATION,
+        title: 'Notificações',
+        subtitle: 'detalhes notificações',
+        icon: 'notification',
+        userInfo: {
+          url: 'url'
+        }
+      }
+    ]);
+
+    QuickActions.popInitialAction().then(item => {
+      processShortcut(item);
+
+    }).catch(error => {
+      console.log('something went wrong')
+    });
+
+    DeviceEventEmitter.addListener('quickActionShortcut', (item: ShortcutItem) => {
+    processShortcut(item);
+    })
+
+    return () => {
+      QuickActions.clearShortcutItems();
+      DeviceEventEmitter.removeAllListeners();
+    }
+
+  }, []);
+
   return (
     <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
+
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         style={backgroundStyle}>
-        <Header />
         <View
           style={{
             backgroundColor: isDarkMode ? Colors.black : Colors.white,
           }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
           <Section title="Learn More">
             Read the docs to discover what to do next:
           </Section>
-          <LearnMoreLinks />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -109,10 +148,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 18,
     fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
-  },
+  }
 });
 
 export default App;
